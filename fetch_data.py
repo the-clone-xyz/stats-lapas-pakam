@@ -2,9 +2,8 @@ import requests
 import json
 import os
 
-# Konfigurasi API
-# URL yang Anda berikan menggunakan domain 1212 (Deli Serdang) dan var 230
 API_KEY = os.getenv('BPS_API_KEY')
+# Gunakan URL yang Anda berikan tadi
 URL = f"https://webapi.bps.go.id/v1/api/list/model/data/lang/ind/domain/1212/var/230/key/{API_KEY}"
 
 def fetch_bps_data():
@@ -12,60 +11,51 @@ def fetch_bps_data():
         response = requests.get(URL)
         res_json = response.json()
 
-        if res_json['status'] != 'OK':
-            print("Gagal mengambil data dari API BPS")
+        if res_json.get('status') != 'OK':
+            print("API BPS mengembalikan status bukan OK")
             return
 
-        # Ambil metadata tahun (vervar) dan jenis kelamin (turvar)
-        # BPS menggunakan ID untuk menghubungkan data
-        years = res_json['vervar'] # List tahun
-        categories = res_json['turvar'] # List Jenis Kelamin (Laki-laki, Perempuan)
-        datacontent = res_json['datacontent'] # Isi data asli
+        vervar = res_json.get('vervar', [])
+        turvar = res_json.get('turvar', [])
+        datacontent = res_json.get('datacontent', {})
 
         final_data = []
 
-        # Loop setiap tahun yang tersedia di API
-        for y in years:
-            year_id = str(y['val'])
-            year_label = y['label']
+        for y in vervar:
+            y_id = str(y['val'])
+            y_label = y['label']
             
-            # Cari ID untuk Laki-laki dan Perempuan (asumsi ID statis atau cari di turvar)
-            # Biasanya ID 1 = Laki-laki, ID 2 = Perempuan dalam var ini
-            male_val = 0
-            female_val = 0
+            # Cari Laki-laki (biasanya ID 1) dan Perempuan (biasanya ID 2)
+            # Kita cari secara dinamis berdasarkan label
+            m_val = 0
+            f_val = 0
 
-            for c in categories:
-                cat_id = str(c['val'])
-                # Key format di BPS: varID + turvarID + vervarID + thID
-                # Karena thID sudah masuk di URL (atau dinamis), kita gabungkan kuncinya
-                # Format kunci umum BPS: '230' + cat_id + '0' + year_id
-                data_key = f"230{cat_id}0{year_id}"
+            for t in turvar:
+                t_id = str(t['val'])
+                # Format key BPS: var_id + turvar_id + vervar_id + th_id
+                # Karena URL tidak pakai th_id khusus, formatnya biasanya: var + turvar + 0 + vervar
+                key = f"230{t_id}0{y_id}"
+                val = datacontent.get(key, 0)
                 
-                val = datacontent.get(data_key, 0)
-                if val == "-" or val is None: val = 0
-                
-                if "Laki-laki" in c['label']:
-                    male_val = int(val)
-                elif "Perempuan" in c['label']:
-                    female_val = int(val)
+                # Bersihkan data jika berupa '-'
+                clean_val = int(val) if str(val).isdigit() else 0
 
-            final_data.append({
-                "tahun": year_label,
-                "male": male_val,
-                "female": female_val
-            })
+                if "Laki-laki" in t['label']:
+                    m_val = clean_val
+                elif "Perempuan" in t['label']:
+                    f_val = clean_val
 
-        # Urutkan berdasarkan tahun terkecil ke terbesar
+            final_data.append({"tahun": y_label, "male": m_val, "female": f_val})
+
         final_data.sort(key=lambda x: x['tahun'])
 
-        # Simpan ke data.json
         with open('data.json', 'w') as f:
             json.dump({"data": final_data}, f, indent=4)
         
-        print(f"Berhasil memproses {len(final_data)} tahun data.")
+        print("Selesai memperbarui data.json")
 
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"Terjadi kesalahan: {e}")
 
 if __name__ == "__main__":
     fetch_bps_data()
