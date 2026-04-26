@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Narapidana Lapas Lubuk Pakam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="container mx-auto px-4 py-10 max-w-5xl">
+        <div class="bg-white rounded-t-xl shadow-sm p-6 border-b">
+            <h1 class="text-2xl font-bold text-gray-800">Jumlah Narapidana Menurut Jenis Kelamin</h1>
+            <p class="text-blue-600 font-medium">Lembaga Pemasyarakatan Lubuk Pakam (Jiwa)</p>
+            <p class="text-gray-400 text-xs mt-1 italic italic">Sumber data: BPS Deli Serdang</p>
+        </div>
+
+        <div class="bg-white p-6 shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="md:col-span-1">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-4">Tabel Data</h3>
+                    <div class="overflow-hidden rounded-lg border border-gray-200">
+                        <table class="w-full text-sm text-left text-gray-600">
+                            <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                                <tr>
+                                    <th class="px-4 py-3">Tahun</th>
+                                    <th class="px-4 py-3 text-center">L</th>
+                                    <th class="px-4 py-3 text-center">P</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-4">Visualisasi Grafik</h3>
+                    <div class="relative h-[300px]">
+                        <canvas id="bpsChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-b-xl p-4 text-center border-t">
+            <p class="text-gray-500 text-sm">Dashboard Data Statis - GitHub Pages Deployment</p>
+        </div>
+    </div>
+
+    <script>
+        // Data Representatif (Sesuaikan dengan angka terbaru dari BPS Deli Serdang)
+        const dataBPS = [
+            { tahun: 2021, male: 1450, female: 45 },
+            { tahun: 2022, male: 1520, female: 50 },
+            { tahun: 2023, male: 1610, female: 52 },
+            { tahun: 2024, male: 1685, female: 58 }
+        ];
+
+        // 1. Render Tabel secara Dinamis
+        const tableBody = document.getElementById('table-body');
+        dataBPS.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = "border-b hover:bg-gray-50";
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-medium text-gray-900">${row.tahun}</td>
+                <td class="px-4 py-3 text-center">${row.male.toLocaleString()}</td>
+                <td class="px-4 py-3 text-center">${row.female.toLocaleString()}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        // 2. Render Grafik Chart.js
+        const ctx = document.getElementById('bpsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dataBPS.map(d => d.tahun),
+                datasets: [
+                    {
+                        label: 'Laki-laki',
+                        data: dataBPS.map(d => d.male),
+                        backgroundColor: '#3b82f6', // blue-500
+                        borderRadius: 5,
+                    },
+                    {
+                        label: 'Perempuan',
+                        data: dataBPS.map(d => d.female),
+                        backgroundColor: '#ec4899', // pink-500
+                        borderRadius: 5,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: { display: true, text: 'Jumlah Jiwa' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
