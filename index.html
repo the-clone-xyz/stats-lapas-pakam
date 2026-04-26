@@ -97,29 +97,48 @@
 
         async function initDashboard() {
             try {
+                if (window.location.protocol === 'file:') {
+                    throw new Error('Akses file lokal terbatas. Buka halaman ini melalui server lokal atau GitHub Pages.');
+                }
+
                 // Mengambil data dari data.json yang digenerate oleh GitHub Actions
                 const dataUrl = new URL('./data.json', window.location.href).href;
-                const response = await fetch(dataUrl);
+                const response = await fetch(dataUrl, { cache: 'no-store' });
                 if (!response.ok) throw new Error(`Data tidak ditemukan (status ${response.status})`);
-                
+
                 const rawData = await response.json();
-                
-                // --- ASUMSI STRUKTUR DATA (Disesuaikan dengan output fetch_data.py Anda) ---
-                // Jika API BPS memberikan format kompleks, Anda perlu memparsingnya di sini.
-                // Untuk contoh ini, kita asumsikan bot Python sudah merapikannya menjadi array simpel:
-                const processedData = rawData.data || [
-                    { tahun: 'Januari', male: 1450, female: 45 },
-                    { tahun: 'Februari', male: 1520, female: 50 },
-                    { tahun: 'Maret', male: 1610, female: 52 },
-                    { tahun: 'April', male: 1685, female: 58 }
-                ];
+                const processedData = rawData.data || [];
+
+                if (!processedData.length) {
+                    throw new Error('Format data.json tidak sesuai atau tidak berisi data.');
+                }
 
                 renderUI(processedData);
             } catch (err) {
                 console.error(err);
-                loader.classList.add('hidden');
-                errorMsg.classList.remove('hidden');
-                document.getElementById('error-detail').textContent = err.message;
+                if (window.location.protocol === 'file:' || err.message.includes('Data tidak ditemukan')) {
+                    const fallbackData = [
+                        { tahun: 'Januari', male: 547, female: 20 },
+                        { tahun: 'Februari', male: 608, female: 21 },
+                        { tahun: 'Maret', male: 662, female: 21 },
+                        { tahun: 'April', male: 642, female: 20 },
+                        { tahun: 'Mei', male: 678, female: 23 },
+                        { tahun: 'Juni', male: 691, female: 28 },
+                        { tahun: 'Juli', male: 615, female: 26 },
+                        { tahun: 'Agustus', male: 590, female: 24 },
+                        { tahun: 'September', male: 526, female: 23 },
+                        { tahun: 'Oktober', male: 429, female: 18 },
+                        { tahun: 'November', male: 482, female: 19 },
+                        { tahun: 'Desember', male: 517, female: 21 }
+                    ];
+                    document.getElementById('error-detail').textContent = err.message + ' Menampilkan data contoh dari fallback.';
+                    errorMsg.classList.remove('hidden');
+                    renderUI(fallbackData);
+                } else {
+                    loader.classList.add('hidden');
+                    errorMsg.classList.remove('hidden');
+                    document.getElementById('error-detail').textContent = err.message;
+                }
             }
         }
 
