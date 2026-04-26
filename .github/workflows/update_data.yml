@@ -1,0 +1,34 @@
+name: Auto Update BPS Data
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Berjalan setiap jam 12 malam
+  workflow_dispatch: # Supaya bisa kita klik manual untuk ngetes
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Requests
+        run: pip install requests
+
+      - name: Run Fetch Script
+        env:
+          BPS_API_KEY: ${{ secrets.BPS_API_KEY }}
+        run: python fetch_data.py
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "Update data.json otomatis" || exit 0
+          git push
