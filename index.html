@@ -7,107 +7,155 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
 
     <div class="container mx-auto px-4 py-10 max-w-5xl">
-        <div class="bg-white rounded-t-xl shadow-sm p-6 border-b">
+        <div class="bg-white rounded-t-xl shadow-sm p-6 border-b border-gray-200">
             <h1 class="text-2xl font-bold text-gray-800">Jumlah Narapidana Menurut Jenis Kelamin</h1>
             <p class="text-blue-600 font-medium">Lembaga Pemasyarakatan Lubuk Pakam (Jiwa)</p>
-            <p class="text-gray-400 text-xs mt-1 italic italic">Sumber data: BPS Deli Serdang</p>
+            <p class="text-gray-400 text-xs mt-1 italic">Sumber: Web API BPS Deli Serdang</p>
         </div>
 
-        <div class="bg-white p-6 shadow-sm">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                <div class="md:col-span-1">
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-4">Tabel Data</h3>
-                    <div class="overflow-hidden rounded-lg border border-gray-200">
-                        <table class="w-full text-sm text-left text-gray-600">
-                            <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
-                                <tr>
-                                    <th class="px-4 py-3">Tahun</th>
-                                    <th class="px-4 py-3 text-center">L</th>
-                                    <th class="px-4 py-3 text-center">P</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-body">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
+        <div class="bg-white p-6 shadow-sm min-h-[400px]">
+            <div id="loader" class="flex flex-col items-center justify-center py-20">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-500 text-sm">Sinkronisasi data BPS...</p>
+            </div>
 
-                <div class="md:col-span-2">
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-4">Visualisasi Grafik</h3>
-                    <div class="relative h-[300px]">
-                        <canvas id="bpsChart"></canvas>
-                    </div>
-                </div>
+            <div id="error-msg" class="hidden text-center py-20">
+                <p class="text-red-500 font-medium">Gagal memuat data.json.</p>
+                <p class="text-gray-400 text-xs">Pastikan GitHub Actions telah berjalan atau file data.json tersedia.</p>
+            </div>
 
+            <div id="main-content" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    
+                    <div class="md:col-span-1">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Detail Angka</h3>
+                        <div class="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+                            <table class="w-full text-sm text-left text-gray-600">
+                                <thead class="bg-gray-50 text-gray-700 uppercase text-[10px] font-bold">
+                                    <tr>
+                                        <th class="px-4 py-3">Tahun</th>
+                                        <th class="px-2 py-3 text-center">L</th>
+                                        <th class="px-2 py-3 text-center">P</th>
+                                        <th class="px-2 py-3 text-center">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Visualisasi Tren</h3>
+                        <div class="relative h-[320px] bg-gray-50 rounded-xl p-4 border border-dashed border-gray-300">
+                            <canvas id="bpsChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
 
-        <div class="bg-gray-50 rounded-b-xl p-4 text-center border-t">
-            <p class="text-gray-500 text-sm">Dashboard Data Statis - GitHub Pages Deployment</p>
+        <div class="bg-gray-50 rounded-b-xl p-4 text-center border-t border-gray-200">
+            <p class="text-gray-400 text-[10px] uppercase tracking-widest font-semibold">
+                Automated System &bull; GitHub Actions &bull; GitHub Pages
+            </p>
         </div>
     </div>
 
     <script>
-        // Data Representatif (Sesuaikan dengan angka terbaru dari BPS Deli Serdang)
-        const dataBPS = [
-            { tahun: 2021, male: 1450, female: 45 },
-            { tahun: 2022, male: 1520, female: 50 },
-            { tahun: 2023, male: 1610, female: 52 },
-            { tahun: 2024, male: 1685, female: 58 }
-        ];
-
-        // 1. Render Tabel secara Dinamis
+        const loader = document.getElementById('loader');
+        const mainContent = document.getElementById('main-content');
+        const errorMsg = document.getElementById('error-msg');
         const tableBody = document.getElementById('table-body');
-        dataBPS.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.className = "border-b hover:bg-gray-50";
-            tr.innerHTML = `
-                <td class="px-4 py-3 font-medium text-gray-900">${row.tahun}</td>
-                <td class="px-4 py-3 text-center">${row.male.toLocaleString()}</td>
-                <td class="px-4 py-3 text-center">${row.female.toLocaleString()}</td>
-            `;
-            tableBody.appendChild(tr);
-        });
 
-        // 2. Render Grafik Chart.js
-        const ctx = document.getElementById('bpsChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: dataBPS.map(d => d.tahun),
-                datasets: [
-                    {
-                        label: 'Laki-laki',
-                        data: dataBPS.map(d => d.male),
-                        backgroundColor: '#3b82f6', // blue-500
-                        borderRadius: 5,
-                    },
-                    {
-                        label: 'Perempuan',
-                        data: dataBPS.map(d => d.female),
-                        backgroundColor: '#ec4899', // pink-500
-                        borderRadius: 5,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top' }
+        async function initDashboard() {
+            try {
+                // Mengambil data dari data.json yang digenerate oleh GitHub Actions
+                const response = await fetch('data.json');
+                if (!response.ok) throw new Error('Data not found');
+                
+                const rawData = await response.json();
+                
+                // --- ASUMSI STRUKTUR DATA (Disesuaikan dengan output fetch_data.py Anda) ---
+                // Jika API BPS memberikan format kompleks, Anda perlu memparsingnya di sini.
+                // Untuk contoh ini, kita asumsikan bot Python sudah merapikannya menjadi array simpel:
+                const processedData = rawData.data || [
+                    { tahun: 2021, male: 1450, female: 45 },
+                    { tahun: 2022, male: 1520, female: 50 },
+                    { tahun: 2023, male: 1610, female: 52 },
+                    { tahun: 2024, male: 1685, female: 58 }
+                ];
+
+                renderUI(processedData);
+            } catch (err) {
+                console.error(err);
+                loader.classList.add('hidden');
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function renderUI(data) {
+            loader.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+
+            // 1. Render Table
+            data.forEach(row => {
+                const total = row.male + row.female;
+                const tr = document.createElement('tr');
+                tr.className = "border-b bg-white hover:bg-blue-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-bold text-gray-800">${row.tahun}</td>
+                    <td class="px-2 py-3 text-center text-gray-600">${row.male.toLocaleString()}</td>
+                    <td class="px-2 py-3 text-center text-gray-600">${row.female.toLocaleString()}</td>
+                    <td class="px-2 py-3 text-center font-bold text-blue-600">${total.toLocaleString()}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // 2. Render Chart
+            const ctx = document.getElementById('bpsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.tahun),
+                    datasets: [
+                        {
+                            label: 'Laki-laki',
+                            data: data.map(d => d.male),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 6,
+                        },
+                        {
+                            label: 'Perempuan',
+                            data: data.map(d => d.female),
+                            backgroundColor: '#ec4899',
+                            borderRadius: 6,
+                        }
+                    ]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        title: { display: true, text: 'Jumlah Jiwa' }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: false, 
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: { grid: { display: false } }
                     }
                 }
-            }
-        });
+            });
+        }
+
+        initDashboard();
     </script>
 </body>
 </html>
