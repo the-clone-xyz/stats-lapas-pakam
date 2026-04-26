@@ -89,146 +89,123 @@
         </div>
     </div>
 
-    <script>
-        const loader = document.getElementById('loader');
-        const mainContent = document.getElementById('main-content');
-        const errorMsg = document.getElementById('error-msg');
-        const tableBody = document.getElementById('table-body');
+<script>
+    const loader = document.getElementById('loader');
+    const mainContent = document.getElementById('main-content');
+    const errorMsg = document.getElementById('error-msg');
+    const tableBody = document.getElementById('table-body');
+    let myChart = null; // Variable untuk menyimpan instance chart
 
-        async function initDashboard() {
-            try {
-                if (window.location.protocol === 'file:') {
-                    throw new Error('Akses file lokal terbatas. Buka halaman ini melalui server lokal atau GitHub Pages.');
-                }
+    async function initDashboard() {
+        try {
+            if (window.location.protocol === 'file:') {
+                throw new Error('Akses file lokal terbatas. Gunakan GitHub Pages.');
+            }
 
-                // Mengambil data dari data.json yang digenerate oleh GitHub Actions
-                const dataUrl = new URL('./data.json', window.location.href).href;
-                const response = await fetch(dataUrl, { cache: 'no-store' });
-                if (!response.ok) throw new Error(`Data tidak ditemukan (status ${response.status})`);
+            // Fetch data dengan cache buster
+            const response = await fetch('data.json?t=' + Date.now());
+            if (!response.ok) throw new Error(`Data tidak ditemukan (status ${response.status})`);
 
-                const rawData = await response.json();
-                const processedData = rawData.data || [];
+            const rawData = await response.json();
+            const processedData = rawData.data || [];
 
-                if (!processedData.length) {
-                    throw new Error('Format data.json tidak sesuai atau tidak berisi data.');
-                }
+            if (!processedData.length) throw new Error('data.json kosong.');
 
-                renderUI(processedData);
-            } catch (err) {
-                console.error(err);
-                if (window.location.protocol === 'file:' || err.message.includes('Data tidak ditemukan')) {
-                    const fallbackData = [
-                        { tahun: 'Januari', male: 547, female: 20 },
-                        { tahun: 'Februari', male: 608, female: 21 },
-                        { tahun: 'Maret', male: 662, female: 21 },
-                        { tahun: 'April', male: 642, female: 20 },
-                        { tahun: 'Mei', male: 678, female: 23 },
-                        { tahun: 'Juni', male: 691, female: 28 },
-                        { tahun: 'Juli', male: 615, female: 26 },
-                        { tahun: 'Agustus', male: 590, female: 24 },
-                        { tahun: 'September', male: 526, female: 23 },
-                        { tahun: 'Oktober', male: 429, female: 18 },
-                        { tahun: 'November', male: 482, female: 19 },
-                        { tahun: 'Desember', male: 517, female: 21 }
-                    ];
-                    document.getElementById('error-detail').textContent = err.message + ' Menampilkan data contoh dari fallback.';
-                    errorMsg.classList.remove('hidden');
-                    renderUI(fallbackData);
-                } else {
-                    loader.classList.add('hidden');
-                    errorMsg.classList.remove('hidden');
-                    document.getElementById('error-detail').textContent = err.message;
+            renderUI(processedData);
+        } catch (err) {
+            console.error(err);
+            const fallbackData = [
+                { tahun: 'Januari', male: 547, female: 20 },
+                { tahun: 'Februari', male: 608, female: 21 },
+                { tahun: 'Maret', male: 662, female: 21 },
+                { tahun: 'April', male: 642, female: 20 },
+                { tahun: 'Mei', male: 678, female: 23 },
+                { tahun: 'Juni', male: 691, female: 28 }
+            ];
+            document.getElementById('error-detail').textContent = err.message;
+            errorMsg.classList.remove('hidden');
+            renderUI(fallbackData);
+        }
+    }
+
+    function renderUI(data) {
+        loader.classList.add('hidden');
+        mainContent.classList.remove('hidden');
+        tableBody.innerHTML = ''; // Clear table
+
+        const totalMale = data.reduce((sum, row) => sum + (Number(row.male) || 0), 0);
+        const totalFemale = data.reduce((sum, row) => sum + (Number(row.female) || 0), 0);
+        
+        document.getElementById('total-count').textContent = (totalMale + totalFemale).toLocaleString();
+        document.getElementById('male-count').textContent = totalMale.toLocaleString();
+        document.getElementById('female-count').textContent = totalFemale.toLocaleString();
+
+        data.forEach(row => {
+            const total = (Number(row.male) || 0) + (Number(row.female) || 0);
+            const tr = document.createElement('tr');
+            tr.className = "border-b bg-white hover:bg-blue-50 transition-colors";
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-bold text-gray-800">${row.tahun}</td>
+                <td class="px-2 py-3 text-center text-blue-600">${row.male.toLocaleString()}</td>
+                <td class="px-2 py-3 text-center text-pink-600">${row.female.toLocaleString()}</td>
+                <td class="px-2 py-3 text-center font-bold text-slate-900">${total.toLocaleString()}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        // Chart.js Implementation
+        const ctx = document.getElementById('bpsChart').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (myChart) { myChart.destroy(); }
+
+        myChart = new Chart(ctx, {
+            type: 'bar', // Tipe dasar harus didefinisikan di sini
+            data: {
+                labels: data.map(d => d.tahun),
+                datasets: [
+                    {
+                        label: 'Total',
+                        data: data.map(d => (Number(d.male) || 0) + (Number(d.female) || 0)),
+                        type: 'line', // Mixed mode
+                        borderColor: '#f97316',
+                        backgroundColor: 'transparent',
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        order: 1 // Muncul di paling depan
+                    },
+                    {
+                        label: 'Laki-laki',
+                        data: data.map(d => Number(d.male) || 0),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6,
+                        order: 2
+                    },
+                    {
+                        label: 'Perempuan',
+                        data: data.map(d => Number(d.female) || 0),
+                        backgroundColor: '#ec4899',
+                        borderRadius: 6,
+                        order: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true } }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                    x: { grid: { display: false } }
                 }
             }
-        }
+        });
+    }
 
-        function renderUI(data) {
-            loader.classList.add('hidden');
-            mainContent.classList.remove('hidden');
-
-            const totalMale = data.reduce((sum, row) => sum + row.male, 0);
-            const totalFemale = data.reduce((sum, row) => sum + row.female, 0);
-            const totalAll = totalMale + totalFemale;
-            const bestMonth = data.reduce((best, row) => {
-                const totalRow = row.male + row.female;
-                return totalRow > (best.male + best.female) ? row : best;
-            }, data[0]);
-            const worstMonth = data.reduce((worst, row) => {
-                const totalRow = row.male + row.female;
-                return totalRow < (worst.male + worst.female) ? row : worst;
-            }, data[0]);
-
-            document.getElementById('total-count').textContent = totalAll.toLocaleString();
-            document.getElementById('male-count').textContent = totalMale.toLocaleString();
-            document.getElementById('female-count').textContent = totalFemale.toLocaleString();
-            document.getElementById('total-label').textContent = `Bulan terkuat: ${bestMonth.tahun} (${(bestMonth.male + bestMonth.female).toLocaleString()})`;
-
-            // 1. Render Table
-            data.forEach(row => {
-                const total = row.male + row.female;
-                const tr = document.createElement('tr');
-                tr.className = "border-b bg-white hover:bg-blue-50 transition-colors";
-                tr.innerHTML = `
-                    <td class="px-4 py-3 font-bold text-gray-800">${row.tahun}</td>
-                    <td class="px-2 py-3 text-center text-blue-600">${row.male.toLocaleString()}</td>
-                    <td class="px-2 py-3 text-center text-pink-600">${row.female.toLocaleString()}</td>
-                    <td class="px-2 py-3 text-center font-bold text-slate-900">${total.toLocaleString()}</td>
-                `;
-                tableBody.appendChild(tr);
-            });
-
-            // 2. Render Chart
-            const ctx = document.getElementById('bpsChart').getContext('2d');
-            new Chart(ctx, {
-                data: {
-                    labels: data.map(d => d.tahun),
-                    datasets: [
-                        {
-                            label: 'Laki-laki',
-                            data: data.map(d => d.male),
-                            backgroundColor: '#3b82f6',
-                            borderRadius: 6,
-                        },
-                        {
-                            label: 'Perempuan',
-                            data: data.map(d => d.female),
-                            backgroundColor: '#ec4899',
-                            borderRadius: 6,
-                        },
-                        {
-                            label: 'Total',
-                            data: data.map(d => d.male + d.female),
-                            type: 'line',
-                            borderColor: '#f97316',
-                            backgroundColor: '#f9731633',
-                            tension: 0.35,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#f97316',
-                            borderWidth: 2,
-                            order: 0,
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } },
-                        tooltip: { mode: 'index', intersect: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#e5e7eb' },
-                            ticks: { font: { size: 11 } }
-                        },
-                        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
-                    }
-                }
-            });
-        }
-
-        initDashboard();
-    </script>
+    initDashboard();
+</script>
 </body>
 </html>
