@@ -1,0 +1,64 @@
+{
+    "data": [
+        {
+            "tahun": "Januari",
+            "male": 547,
+            "female": 20
+        },
+        {
+            "tahun": "Februari",
+            "male": 608,
+            "female": 21
+        },
+        {
+            "tahun": "Maret",
+            "male": 662,
+            "female": 21
+        },
+        {
+            "tahun": "April",
+            "male": 642,
+            "female": 20
+        },
+        {
+            "tahun": "Mei",
+            "male": 678,
+            "female": 23
+        },
+        {
+            "tahun": "Juni",
+            "male": 691,
+            "female": 28
+        },
+        {
+            "tahun": "Juli",
+            "male": 615,
+            "female": 26
+        },
+        {
+            "tahun": "Agustus",
+            "male": 590,
+            "female": 24
+        },
+        {
+            "tahun": "September",
+            "male": 526,
+            "female": 23
+        },
+        {
+            "tahun": "Oktober",
+            "male": 429,
+            "female": 18
+        },
+        {
+            "tahun": "November",
+            "male": 482,
+            "female": 19
+        },
+        {
+            "tahun": "Desember",
+            "male": 517,
+            "female": 21
+        }
+    ]
+}
